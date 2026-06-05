@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import facade from "@/assets/photos/facade.webp";
 import living from "@/assets/photos/living.webp";
 import exterior from "@/assets/photos/exterior.webp";
@@ -17,6 +17,8 @@ import kitchen from "@/assets/photos/kitchen.webp";
 import dining from "@/assets/photos/dining.webp";
 import bedroom1 from "@/assets/photos/bedroom1.webp";
 import bedroom2 from "@/assets/photos/bedroom2.webp";
+import bedroom3 from "@/assets/photos/all/20.webp";
+import suite2 from "@/assets/photos/all/30.webp";
 import suite from "@/assets/photos/suite.webp";
 import shower from "@/assets/photos/shower.webp";
 import gourmet from "@/assets/photos/gourmet.webp";
@@ -33,6 +35,15 @@ const allPhotos = Object.entries(
     return aNum - bNum;
   })
   .map(([_, m]) => m.default);
+
+// Carousel reorder: move 6.webp to first, then swap 3rd ↔ 4th
+{
+  const [sixth] = allPhotos.splice(5, 1);
+  allPhotos.unshift(sixth);
+}
+[allPhotos[3], allPhotos[4]] = [allPhotos[4], allPhotos[3]];
+
+const photoIndexMap = new Map(allPhotos.map((src, i) => [src, i]));
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,8 +69,10 @@ export const Route = createFileRoute("/")({
 const stats = [
   { n: "4", l: "Quartos" },
   { n: "9", l: "Hóspedes" },
+  { n: "2+", l: "Vagas de Garagem" },
   { n: "3", l: "Banheiros" },
-  { n: "260", l: "m² de área" },
+  { n: "260", l: "m² de área construída" },
+  { n: "2 km", l: "do centro de Bonito" },
 ];
 
 const gallery = [
@@ -74,6 +87,14 @@ const gallery = [
   { src: exterior, alt: "Varanda externa" },
 ];
 
+type Room = { t: string; d: string; img: string };
+const roomPhotos: Room[] = [
+  { t: "Suíte 1", d: "1 cama de casal · varanda com rede", img: suite },
+  { t: "Suíte 2", d: "1 cama de casal · varanda com rede", img: suite2 },
+  { t: "Quarto com duas camas de solteiro", d: "2 camas de solteiro", img: bedroom2 },
+  { t: "Quarto Triplo", d: "1 cama de casal + 1 cama auxiliar", img: bedroom3 },
+];
+
 const amenities = [
   "Ar-condicionado em todos os quartos",
   "Cozinha completa de alto padrão",
@@ -85,13 +106,15 @@ const amenities = [
   "Garagem para 4 veículos",
   "Roupas de cama e banho",
   "Aceita pets de pequeno porte",
+  "Ventiladores de teto em todos os quartos",
+  "Secador de cabelo",
 ];
 
 const rules = [
   ["Check-in", "15:00 — 21:00"],
   ["Check-out", "até 11:00"],
   ["Silêncio", "22:00 — 08:00"],
-  ["Idade mínima", "21 anos"],
+  ["Idade mínima para fazer reservas", "21 anos"],
   ["Crianças e bebês", "Bem-vindos"],
   ["Pets", "Até 2 de pequeno porte (R$ 80/pet)"],
   ["Fumantes", "Não permitido"],
@@ -100,20 +123,37 @@ const rules = [
 
 function Index() {
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const nextImage = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((lightboxIndex + 1) % allPhotos.length);
-    }
+  const openLightbox = (src: string) => {
+    const idx = photoIndexMap.get(src);
+    if (idx !== undefined) setLightboxIndex(idx);
   };
 
-  const prevImage = (e?: React.MouseEvent) => {
+  const nextImage = React.useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((lightboxIndex - 1 + allPhotos.length) % allPhotos.length);
-    }
-  };
+    setLightboxIndex((prev) => (prev !== null ? (prev + 1) % allPhotos.length : null));
+  }, []);
+
+  const prevImage = React.useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setLightboxIndex((prev) =>
+      prev !== null ? (prev - 1 + allPhotos.length) % allPhotos.length : null,
+    );
+  }, []);
+
+  React.useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") nextImage();
+      else if (e.key === "ArrowLeft") prevImage();
+      else if (e.key === "Escape") setLightboxIndex(null);
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxIndex, nextImage, prevImage]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -155,13 +195,109 @@ function Index() {
               </a>
             </li>
           </ul>
-          <a
-            href="#contato"
-            className="rounded-full border border-primary-foreground/40 px-5 py-2 text-sm transition hover:bg-primary-foreground hover:text-primary"
-          >
-            Reservar
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="#contato"
+              className="rounded-full border border-primary-foreground/40 px-5 py-2 text-sm transition hover:bg-primary-foreground hover:text-primary"
+            >
+              Reservar
+            </a>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center justify-center p-2 text-primary-foreground hover:opacity-80 md:hidden focus:outline-none"
+              aria-label="Abrir menu"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </nav>
+
+        {/* MOBILE MENU OVERLAY */}
+        <div
+          className={`fixed inset-0 z-50 flex flex-col bg-background p-6 transition-all duration-300 md:hidden ${
+            mobileMenuOpen
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-full pointer-events-none"
+          }`}
+        >
+          <div className="flex items-center justify-between py-2">
+            <a
+              href="#top"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3"
+            >
+              <img src={logo} alt="Casa Tuiuiú" className="h-8 w-8 object-contain" />
+              <span className="font-display text-xl tracking-tight text-foreground">
+                Casa Tuiuiú
+              </span>
+            </a>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center p-2 text-foreground focus:outline-none"
+              aria-label="Fechar menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="flex flex-1 flex-col justify-center">
+            <ul className="flex flex-col gap-6 text-center text-2xl font-light">
+              <li>
+                <a
+                  href="#casa"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition"
+                >
+                  A casa
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#galeria"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition"
+                >
+                  Galeria
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#quartos"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition"
+                >
+                  Quartos
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#estadia"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition"
+                >
+                  Estadia
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#contato"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition"
+                >
+                  Contato
+                </a>
+              </li>
+            </ul>
+            <div className="mt-12 flex justify-center">
+              <a
+                href="#contato"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition hover:opacity-90 shadow-md"
+              >
+                Reservar Agora
+              </a>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* HERO */}
@@ -177,13 +313,12 @@ function Index() {
             Solar dos Lagos · Bonito, MS
           </p>
           <h1 className="font-display text-5xl font-light leading-[0.95] md:text-7xl lg:text-8xl">
-            Um refúgio entre
-            <br />
-            <span className="italic">a mata</span> e o silêncio.
+            CASA TUIUIÚ, um refúgio seguro entre
+            <br />a mata e o silêncio do Solar dos Lagos
           </h1>
           <p className="mt-6 max-w-xl text-base opacity-90 md:text-lg">
-            Casa novíssima de alto padrão, inaugurada em janeiro de 2026. Quatro quartos, varandas
-            com redes e vista permanente para a reserva.
+            Casa novíssima de alto padrão, inaugurada em janeiro de 2026. Quatro quartos amplos,
+            varandas com redes e vista para a reserva.
           </p>
           <div className="mt-10 flex flex-wrap gap-x-12 gap-y-4 border-t border-primary-foreground/20 pt-8">
             {stats.map((s) => (
@@ -202,20 +337,20 @@ function Index() {
           <div className="md:col-span-5">
             <p className="mb-6 text-xs uppercase tracking-[0.3em] text-primary">A casa</p>
             <h2 className="font-display text-4xl font-light leading-tight md:text-5xl">
-              Moderna, integrada e cercada por natureza.
+              Moderna, integrada e cercada por natureza
             </h2>
           </div>
           <div className="space-y-6 text-base leading-relaxed text-muted-foreground md:col-span-6 md:col-start-7">
             <p>
-              Distribuída em dois pavimentos, a Casa Tuiuiú reúne ambientes amplos e ventilados. No
-              piso superior, duas suítes com varandas frontal e posterior — ambas com redes e vista
-              para a mata. No térreo, dois quartos adicionais, banheiro social e living totalmente
-              integrado à cozinha planejada.
+              Em dois pavimentos, a Casa Tuiuiú reúne ambientes amplos e ventilados. No piso
+              superior há duas suítes com quatro varandas na frente e atrás, ambas com redes e vista
+              para a mata nos fundos ou a bucólica e tranquila rua. No térreo estão dois quartos,
+              banheiro social e living totalmente integrado à cozinha planejada.
             </p>
             <p>
-              A área externa convida ao descanso: churrasqueira, chuveirão ao ar livre e vista
-              contínua para a reserva, onde araras, macacos, maritacas e tuiuiús fazem parte do
-              cotidiano.
+              A área externa nos fundos convida ao descanso: churrasqueira, chuveirão ao ar livre e
+              vista contínua para a reserva, onde araras, macacos, maritacas e outras espécies da
+              fauna local chegam a fazer parte do cotidiano.
             </p>
           </div>
         </div>
@@ -228,7 +363,7 @@ function Index() {
             <div>
               <p className="mb-4 text-xs uppercase tracking-[0.3em] text-primary">Galeria</p>
               <h2 className="font-display text-4xl font-light md:text-5xl">
-                Cada canto, um convite.
+                Cada canto, um convite
               </h2>
             </div>
           </div>
@@ -242,7 +377,8 @@ function Index() {
                   src={g.src}
                   alt={g.alt}
                   loading="lazy"
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105 cursor-pointer"
+                  onClick={() => openLightbox(g.src)}
                 />
               </figure>
             ))}
@@ -255,19 +391,20 @@ function Index() {
         <div className="mb-16 max-w-2xl">
           <p className="mb-4 text-xs uppercase tracking-[0.3em] text-primary">Acomodações</p>
           <h2 className="font-display text-4xl font-light md:text-5xl">
-            Quatro quartos para até nove pessoas.
+            Quatro quartos para até nove pessoas
           </h2>
         </div>
         <div className="grid gap-px overflow-hidden rounded-sm bg-border md:grid-cols-2 lg:grid-cols-4">
-          {[
-            { t: "Suíte 1", d: "1 cama de casal · varanda com rede", img: suite },
-            { t: "Suíte 2", d: "1 cama de casal · varanda com rede", img: bedroom1 },
-            { t: "Quarto Twin", d: "2 camas de solteiro", img: bedroom2 },
-            { t: "Quarto Triplo", d: "1 cama de casal + 1 futón", img: bedroom1 },
-          ].map((r) => (
+          {roomPhotos.map((r) => (
             <article key={r.t} className="bg-card">
               <div className="aspect-[4/5] overflow-hidden">
-                <img src={r.img} alt={r.t} className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={r.img}
+                  alt={r.t}
+                  className="h-full w-full object-cover cursor-pointer"
+                  loading="lazy"
+                  onClick={() => openLightbox(r.img)}
+                />
               </div>
               <div className="p-6">
                 <h3 className="font-display text-xl">{r.t}</h3>
@@ -282,7 +419,7 @@ function Index() {
       <section className="overflow-hidden bg-background pb-24 md:pb-32">
         <div className="mx-auto max-w-7xl px-6 mb-12">
           <p className="mb-4 text-xs uppercase tracking-[0.3em] text-primary">Experiência</p>
-          <h2 className="font-display text-4xl font-light md:text-5xl">Cada detalhe importa.</h2>
+          <h2 className="font-display text-4xl font-light md:text-5xl">Cada detalhe importa</h2>
         </div>
 
         <div className="relative px-6">
@@ -377,7 +514,7 @@ function Index() {
           <div>
             <p className="mb-4 text-xs uppercase tracking-[0.3em] opacity-70">Comodidades</p>
             <h2 className="font-display text-4xl font-light md:text-5xl">
-              Pensada para o descanso.
+              Pensada para o descanso
             </h2>
             <ul className="mt-10 grid grid-cols-1 gap-y-3 sm:grid-cols-2">
               {amenities.map((a) => (
@@ -390,7 +527,7 @@ function Index() {
           </div>
           <div>
             <p className="mb-4 text-xs uppercase tracking-[0.3em] opacity-70">Sobre a estadia</p>
-            <h2 className="font-display text-4xl font-light md:text-5xl">Regras e horários.</h2>
+            <h2 className="font-display text-4xl font-light md:text-5xl">Regras e horários</h2>
             <dl className="mt-10 divide-y divide-current/15 border-y border-current/15">
               {rules.map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between py-4 text-sm">
@@ -409,7 +546,7 @@ function Index() {
           <div className="md:col-span-5">
             <p className="mb-4 text-xs uppercase tracking-[0.3em] text-primary">Localização</p>
             <h2 className="font-display text-4xl font-light leading-tight md:text-5xl">
-              Solar dos Lagos, Bonito — MS.
+              Solar dos Lagos, Bonito — MS
             </h2>
           </div>
           <div className="space-y-6 text-base leading-relaxed text-muted-foreground md:col-span-6 md:col-start-7">
@@ -435,7 +572,7 @@ function Index() {
           <h2 className="font-display text-4xl font-light leading-tight md:text-6xl">
             Sua estadia em Bonito
             <br />
-            <span className="italic">começa aqui.</span>
+            <span className="italic">começa aqui</span>
           </h2>
           <p className="mx-auto mt-6 max-w-xl opacity-90">
             Atendimento pela equipe Mai Casas, disponível antes, durante e após a estadia.
@@ -443,6 +580,8 @@ function Index() {
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
               href="https://wa.me/5567991318133"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full bg-primary-foreground px-8 py-3 text-sm font-medium text-primary transition hover:opacity-90"
             >
               Falar no WhatsApp
