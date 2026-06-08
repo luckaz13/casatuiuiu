@@ -307,24 +307,26 @@ function Index() {
           alt="Fachada da Casa Tuiuiú"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/45 to-black/90" />
         <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 text-primary-foreground">
-          <p className="mb-4 text-xs uppercase tracking-[0.3em] opacity-80">
-            Solar dos Lagos · Bonito, MS
+          <p className="mb-4 text-lg uppercase tracking-[0.3em] font-semibold text-shadow-md">
+            Solar dos Lagos
           </p>
-          <h1 className="font-display text-5xl font-light leading-[0.95] md:text-7xl lg:text-8xl">
-            CASA TUIUIÚ, um refúgio seguro entre
-            <br />a mata e o silêncio do Solar dos Lagos
+          <h1 className="font-display text-5xl font-light leading-[1.0] md:text-7xl lg:text-8xl text-shadow-lg">
+            CASA TUIUIÚ,
+            <br />
+            {" um refúgio seguro entre a mata"}
+            <br />e o silêncio em Bonito, MS
           </h1>
-          <p className="mt-6 max-w-xl text-base opacity-90 md:text-lg">
+          <p className="mt-6 max-w-xl text-base md:text-lg text-shadow-md">
             Casa novíssima de alto padrão, inaugurada em janeiro de 2026. Quatro quartos amplos,
             varandas com redes e vista para a reserva.
           </p>
           <div className="mt-10 flex flex-wrap gap-x-12 gap-y-4 border-t border-primary-foreground/20 pt-8">
             {stats.map((s) => (
               <div key={s.l}>
-                <div className="font-display text-3xl font-light">{s.n}</div>
-                <div className="text-xs uppercase tracking-widest opacity-70">{s.l}</div>
+                <div className="font-display text-3xl font-light drop-shadow-sm">{s.n}</div>
+                <div className="text-xs uppercase tracking-widest opacity-80 drop-shadow-sm">{s.l}</div>
               </div>
             ))}
           </div>
